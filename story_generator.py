@@ -1,0 +1,336 @@
+
+# ==================================================
+# AI STORY GENERATOR USING GROQ
+# ==================================================
+
+import os
+
+from pathlib import Path
+from groq import Groq
+from dotenv import load_dotenv
+
+
+# ==================================================
+# 1. INITIAL SETUP
+# ==================================================
+
+# Get the folder location of this Python file
+
+BASE_DIR = Path(__file__).resolve().parent
+
+# Load API key from .env file
+
+load_dotenv(BASE_DIR / ".env")
+
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
+if not GROQ_API_KEY:
+    raise ValueError("Groq API key not found. Check your .env file.")
+
+# Initialize Groq client
+
+client = Groq(api_key=GROQ_API_KEY)
+
+# Select LLM model
+
+MODEL = "openai/gpt-oss-20b"
+
+print("\nGroq connected successfully!")
+
+
+# ==================================================
+# 2. GENRE AND TEMPERATURE SETTINGS
+# ==================================================
+
+# Temperature according to genre
+
+genre_temperature = {
+
+    "horror": 0.90,
+
+    "romance": 0.80,
+
+    "thriller": 0.75,
+
+    "science fiction": 0.85,
+
+    "comedy": 0.95,
+
+    "fantasy": 0.90,
+
+    "mystery": 0.65,
+
+    "adventure": 0.85,
+
+    "drama": 0.70,
+
+    "historical fiction": 0.65
+
+}
+
+
+# ==================================================
+# 3. STORY LENGTH SETTINGS
+# ==================================================
+
+# Target word count according to length
+
+story_lengths = {
+
+    "low": 300,
+
+    "medium": 600,
+
+    "high": 1000
+
+}
+
+
+# ==================================================
+# 4. TAKE INPUT FROM USER
+# ==================================================
+
+def get_user_inputs():
+
+    print("\n======================================")
+
+    print("         AI STORY GENERATOR")
+
+    print("======================================")
+
+    # Input 1: Story Name / Topic
+
+    story_name = input(
+        "\nENTER STORY NAME: "
+    ).strip()
+
+    while not story_name:
+
+        print("Story name cannot be empty.")
+
+        story_name = input(
+            "ENTER STORY NAME: "
+        ).strip()
+
+
+    # Input 2: Genre
+
+    print("\nAvailable Genres:")
+
+    for genre in genre_temperature:
+
+        print("-", genre.title())
+
+    genre = input(
+        "\nENTER GENRE: "
+    ).strip().lower()
+
+    while genre not in genre_temperature:
+
+        print("Invalid genre. Please select from the available genres.")
+
+        genre = input(
+            "ENTER GENRE: "
+        ).strip().lower()
+
+
+    # Input 3: Story Length
+
+    story_length = input(
+        "\nSTORY LENGTH (Low / Medium / High): "
+    ).strip().lower()
+
+    while story_length not in story_lengths:
+
+        print("Invalid length. Choose Low, Medium or High.")
+
+        story_length = input(
+            "STORY LENGTH: "
+        ).strip().lower()
+
+
+    return story_name, genre, story_length
+
+
+# ==================================================
+# 5. GENERATE PROMPT
+# ==================================================
+
+def generate_prompt(story_name, genre, story_length):
+
+    word_count = story_lengths[story_length]
+
+    prompt = f"""
+
+    Write an original and engaging story.
+
+    STORY TITLE OR TOPIC:
+    {story_name}
+
+    GENRE:
+    {genre}
+
+    STORY LENGTH:
+    Approximately {word_count} words.
+
+    INSTRUCTIONS:
+
+    1. Write a creative story based on the given topic.
+
+    2. Follow the selected genre carefully.
+
+    3. Create interesting and believable characters.
+
+    4. Include a proper beginning, middle and ending.
+
+    5. Maintain a consistent storyline.
+
+    6. Make the story engaging and enjoyable to read.
+
+    7. Use language that is simple and easy to understand.
+
+    8. Aim for the requested word count.
+
+    9. Give the story an appropriate title.
+
+    10. Return only the completed story without
+        explaining how you generated it.
+
+    """
+
+    return prompt
+
+
+# ==================================================
+# 6. GENERATE STORY USING GROQ LLM
+# ==================================================
+
+def generate_story(prompt, genre):
+
+    # Select temperature according to genre
+
+    temperature = genre_temperature[genre]
+
+    print("\n======================================")
+
+    print("          GENERATING STORY")
+
+    print("======================================")
+
+    print("\nSelected Genre:", genre.title())
+
+    print("Selected Temperature:", temperature)
+
+    print("Model:", MODEL)
+
+    print("\nPlease wait while the story is being generated...")
+
+
+    response = client.chat.completions.create(
+
+        model=MODEL,
+
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+
+        temperature=temperature,
+
+        max_completion_tokens=2500
+
+    )
+
+
+    story = response.choices[0].message.content
+
+    if not story:
+
+        raise ValueError("No story was generated by the AI.")
+
+    return story
+
+
+# ==================================================
+# 7. DISPLAY GENERATED STORY
+# ==================================================
+
+def display_story(story, story_name, genre, story_length):
+
+    print("\n" + "=" * 60)
+
+    print("              YOUR GENERATED STORY")
+
+    print("=" * 60)
+
+    print("\nStory Name:", story_name)
+
+    print("Genre:", genre.title())
+
+    print("Length:", story_length.title())
+
+    print("\n" + "-" * 60)
+
+    print(story)
+
+    print("\n" + "=" * 60)
+
+    print("          STORY GENERATION COMPLETED!")
+
+    print("=" * 60)
+
+
+# ==================================================
+# 8. MAIN FUNCTION
+# ==================================================
+
+def main():
+
+    try:
+
+        # Step 1: Get user inputs
+
+        story_name, genre, story_length = get_user_inputs()
+
+
+        # Step 2: Generate prompt
+
+        prompt = generate_prompt(
+            story_name,
+            genre,
+            story_length
+        )
+
+
+        # Step 3: Generate story using Groq
+
+        story = generate_story(
+            prompt,
+            genre
+        )
+
+
+        # Step 4: Display generated story
+
+        display_story(
+            story,
+            story_name,
+            genre,
+            story_length
+        )
+
+
+    except Exception as error:
+
+        print("\nAn error occurred:", error)
+
+
+# ==================================================
+# 9. RUN PROGRAM
+# ==================================================
+
+if __name__ == "__main__":
+
+    main()
